@@ -1,0 +1,12 @@
+{
+	"$schema": "https://opencode.ai/config.json",
+	"plugin": [
+		"@sveltejs/opencode",
+	],
+	"formatter": {
+		"dprint": {
+			"command": ["dprint", "fmt", "$FILE"],
+			"extensions": [".html", ".json", ".jsonc", ".md", ".svelte", ".svg", ".ts", ".yml", ".yaml"],
+		},
+	},
+}
