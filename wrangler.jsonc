@@ -10,6 +10,14 @@
 		"binding": "ASSETS",
 		"directory": ".svelte-kit/cloudflare",
 	},
+	"build": {
+		"watch_dir": "./src",
+		"command": "bun i && bun bd",
+	},
+	"vars": {
+		"BUN_VERSION": "1.3.10",
+		"SKIP_DEPENDENCY_INSTALL": "1",
+	},
 	"workers_dev": true,
 	"preview_urls": true,
 }
