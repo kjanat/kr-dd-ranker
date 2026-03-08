@@ -7,8 +7,7 @@ export const verwardheid: Case = {
 	patient: {
 		age: 79,
 		sex: 'M',
-		chiefComplaint:
-			'Twee nachten onrustig, door huis gedwaald, riep dat er "mensen in de tuin stonden." Overdag suf.',
+		chiefComplaint: 'Twee nachten onrustig, door huis gedwaald, riep dat er "mensen in de tuin stonden." Overdag suf.',
 	},
 	steps: [
 		{
@@ -37,24 +36,21 @@ export const verwardheid: Case = {
 					name: 'Delier bij onderliggende dementie',
 					correctRank: 3,
 					isRedFlag: true,
-					explanation:
-						'Dementie is de belangrijkste predisponerende factor voor delier. Vaak een combinatie.',
+					explanation: 'Dementie is de belangrijkste predisponerende factor voor delier. Vaak een combinatie.',
 				},
 				{
 					id: 'depressie-psychose',
 					name: 'Depressie met psychotische kenmerken',
 					correctRank: 4,
 					isRedFlag: false,
-					explanation:
-						'Ouderen kunnen psychotisch worden bij ernstige depressie. Vraag naar stemming.',
+					explanation: 'Ouderen kunnen psychotisch worden bij ernstige depressie. Vraag naar stemming.',
 				},
 				{
 					id: 'intoxicatie',
 					name: 'Middelenintoxicatie/-onthouding',
 					correctRank: 5,
 					isRedFlag: false,
-					explanation:
-						'Alcoholonthouding of medicatiebijwerking. Vraag naar middelen en recente wijzigingen.',
+					explanation: 'Alcoholonthouding of medicatiebijwerking. Vraag naar middelen en recente wijzigingen.',
 				},
 				{
 					id: 'psychose',
@@ -92,8 +88,7 @@ export const verwardheid: Case = {
 					name: 'Delier door infectie',
 					correctRank: 3,
 					isRedFlag: true,
-					explanation:
-						'Niet uitgesloten. UWI en pneumonie zijn frequente uitlokkers bij ouderen.',
+					explanation: 'Niet uitgesloten. UWI en pneumonie zijn frequente uitlokkers bij ouderen.',
 				},
 				{
 					id: 'dementie',
@@ -108,8 +103,7 @@ export const verwardheid: Case = {
 					name: 'Alcoholonthouding',
 					correctRank: 5,
 					isRedFlag: false,
-					explanation:
-						'1-2 glazen/dag is matig. Maar: bij bedlegerigheid kan ongewild onthouding optreden.',
+					explanation: '1-2 glazen/dag is matig. Maar: bij bedlegerigheid kan ongewild onthouding optreden.',
 				},
 				{
 					id: 'psychose',
@@ -146,16 +140,14 @@ export const verwardheid: Case = {
 					name: 'Onderliggende MCI/dementie',
 					correctRank: 2,
 					isRedFlag: false,
-					explanation:
-						'Vergeetachtigheid van vóór het delier wijst hierop. Pas na herstel evalueren met MMSE/MoCA.',
+					explanation: 'Vergeetachtigheid van vóór het delier wijst hierop. Pas na herstel evalueren met MMSE/MoCA.',
 				},
 				{
 					id: 'uwi',
 					name: 'UWI als bijkomende oorzaak',
 					correctRank: 3,
 					isRedFlag: false,
-					explanation:
-						'Bij urineretentie is UWI mogelijk. Urine testen. Ouderen kunnen afebriel zijn bij infectie.',
+					explanation: 'Bij urineretentie is UWI mogelijk. Urine testen. Ouderen kunnen afebriel zijn bij infectie.',
 				},
 			],
 		},

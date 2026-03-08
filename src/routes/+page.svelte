@@ -129,7 +129,10 @@ function moveDown(index: number) {
 
 function toggleFlag(index: number) {
 	const updated = [...userDiagnoses];
-	updated[index] = { ...updated[index], flaggedRedFlag: !updated[index].flaggedRedFlag };
+	updated[index] = {
+		...updated[index],
+		flaggedRedFlag: !updated[index].flaggedRedFlag,
+	};
 	userDiagnoses = updated;
 }
 
@@ -150,13 +153,18 @@ function tauToPercent(tau: number): number {
 	// tau ranges from -1 to 1, normalize to 0-100
 	return Math.round(((tau + 1) / 2) * 100);
 }
+
+function scoreColor(score: number): string {
+	return score === 1 ? 'var(--success)' : 'var(--danger)';
+}
 </script>
 
 <!-- ====== CASE SELECTION ====== -->
 {#if phase.kind === 'selecting'}
 	<div class="stack stack-md" style="margin-top: 1rem">
 		<p class="text-sm text-muted text-center">
-			Kies een casus. Rank de diagnoses op waarschijnlijkheid en markeer de alarmsignalen.
+			Kies een casus. Rank de diagnoses op waarschijnlijkheid en markeer de
+			alarmsignalen.
 		</p>
 
 		<div class="case-grid">
@@ -166,22 +174,24 @@ function tauToPercent(tau: number): number {
 					<div class="case-info">
 						<div class="case-title">{c.title}</div>
 						<div class="case-patient">
-							{c.patient.sex === 'M' ? 'Man' : 'Vrouw'}, {c.patient.age} jaar &middot;
+							{c.patient.sex === 'M' ? 'Man' : 'Vrouw'}, {c.patient.age} jaar
+							&middot;
 							{c.steps.length} stappen
 						</div>
 					</div>
-					<span style="color: var(--text-muted); font-size: 1.25rem">&#8250;</span>
+					<span style="color: var(--text-muted); font-size: 1.25rem"
+					>&#8250;</span>
 				</button>
 			{/each}
 		</div>
 	</div>
 
-<!-- ====== RANKING PHASE ====== -->
+	<!-- ====== RANKING PHASE ====== -->
 {:else if phase.kind === 'ranking' && activeCase && activeStep}
 	<div class="stack stack-md" style="margin-top: 1rem">
 		<!-- Step progress -->
 		<div class="row" style="justify-content: center">
-			{#each activeCase.steps as _step, i}
+			{#each activeCase.steps as step, i (step.title)}
 				{#if i > 0}
 					<div class="step-connector" class:done={i <= currentStepIndex}></div>
 				{/if}
@@ -201,12 +211,16 @@ function tauToPercent(tau: number): number {
 				<div>
 					<div class="label">Patient</div>
 					<div class="value">
-						{activeCase.patient.sex === 'M' ? 'Man' : 'Vrouw'}, {activeCase.patient.age} jaar
+						{activeCase.patient.sex === 'M' ? 'Man' : 'Vrouw'}, {
+							activeCase.patient.age
+						} jaar
 					</div>
 				</div>
 				<div style="flex: 1; min-width: 200px">
 					<div class="label">Klacht</div>
-					<div class="value" style="font-size: 1rem">{activeCase.patient.chiefComplaint}</div>
+					<div class="value" style="font-size: 1rem">
+						{activeCase.patient.chiefComplaint}
+					</div>
 				</div>
 			</div>
 		</div>
@@ -221,8 +235,8 @@ function tauToPercent(tau: number): number {
 
 		<!-- Instructions -->
 		<div class="text-sm text-muted">
-			Sleep de diagnoses in volgorde van waarschijnlijkheid (meest waarschijnlijk bovenaan).
-			Markeer gevaarlijke diagnoses met de vlag.
+			Sleep de diagnoses in volgorde van waarschijnlijkheid (meest
+			waarschijnlijk bovenaan). Markeer gevaarlijke diagnoses met de vlag.
 		</div>
 
 		<!-- Diagnosis list -->
@@ -246,12 +260,16 @@ function tauToPercent(tau: number): number {
 							onclick={() => moveUp(i)}
 							disabled={i === 0}
 							aria-label="Omhoog"
-						>&#9650;</button>
+						>
+							&#9650;
+						</button>
 						<button
 							onclick={() => moveDown(i)}
 							disabled={i === userDiagnoses.length - 1}
 							aria-label="Omlaag"
-						>&#9660;</button>
+						>
+							&#9660;
+						</button>
 					</div>
 					<button
 						class="dx-flag"
@@ -275,13 +293,13 @@ function tauToPercent(tau: number): number {
 		</button>
 	</div>
 
-<!-- ====== FEEDBACK PHASE ====== -->
+	<!-- ====== FEEDBACK PHASE ====== -->
 {:else if phase.kind === 'feedback' && activeCase && activeStep}
 	{@const result = phase.result}
 	<div class="stack stack-md" style="margin-top: 1rem">
 		<!-- Step progress -->
 		<div class="row" style="justify-content: center">
-			{#each activeCase.steps as _step, i}
+			{#each activeCase.steps as step, i (step.title)}
 				{#if i > 0}
 					<div class="step-connector" class:done={i <= phase.stepIndex}></div>
 				{/if}
@@ -298,29 +316,37 @@ function tauToPercent(tau: number): number {
 		<!-- Scores -->
 		<div class="score-grid">
 			<div class="score-card">
-				<div class="score-value" style="color: var(--primary)">{tauToPercent(result.kendallTau)}</div>
+				<div class="score-value" style="color: var(--primary)">
+					{tauToPercent(result.kendallTau)}
+				</div>
 				<div class="score-label">Ranking (Kendall &tau;)</div>
 				<div class="progress-bar" style="margin-top: 0.5rem">
 					<div
 						class="progress-fill"
-						style="width: {tauToPercent(result.kendallTau)}%; background: var(--primary)"
-					></div>
+						style:width="{tauToPercent(result.kendallTau)}%"
+						style:background="var(--primary)"
+					>
+					</div>
 				</div>
 			</div>
 			<div class="score-card">
-				<div class="score-value" style="color: {result.redFlagScore === 1 ? 'var(--success)' : 'var(--danger)'}">
+				<div class="score-value" style:color={scoreColor(result.redFlagScore)}>
 					{formatScore(result.redFlagScore)}
 				</div>
 				<div class="score-label">Alarmsignalen</div>
 				<div class="progress-bar" style="margin-top: 0.5rem">
 					<div
 						class="progress-fill"
-						style="width: {result.redFlagScore * 100}%; background: {result.redFlagScore === 1 ? 'var(--success)' : 'var(--danger)'}"
-					></div>
+						style:width="{result.redFlagScore * 100}%"
+						style:background={scoreColor(result.redFlagScore)}
+					>
+					</div>
 				</div>
 			</div>
 			<div class="score-card">
-				<div class="score-value" style="color: var(--text-muted)">{formatTime(result.timeMs)}</div>
+				<div class="score-value" style="color: var(--text-muted)">
+					{formatTime(result.timeMs)}
+				</div>
 				<div class="score-label">Tijd</div>
 			</div>
 		</div>
@@ -336,7 +362,10 @@ function tauToPercent(tau: number): number {
 					class:fb-missed={fb.missedRedFlag}
 					style="cursor: default"
 				>
-					<div class="dx-rank" style="background: transparent; border: none; font-size: 0.75rem">
+					<div
+						class="dx-rank"
+						style="background: transparent; border: none; font-size: 0.75rem"
+					>
 						{fb.userRank} &#8594; {fb.correctRank}
 					</div>
 					<div class="stack stack-xs" style="flex: 1">
@@ -379,10 +408,12 @@ function tauToPercent(tau: number): number {
 		</div>
 	</div>
 
-<!-- ====== COMPLETE PHASE ====== -->
+	<!-- ====== COMPLETE PHASE ====== -->
 {:else if phase.kind === 'complete' && activeCase}
-	{@const avgTau = stepResults.reduce((sum, r) => sum + r.kendallTau, 0) / stepResults.length}
-	{@const avgRedFlag = stepResults.reduce((sum, r) => sum + r.redFlagScore, 0) / stepResults.length}
+	{@const avgTau = stepResults.reduce((sum, r) => sum + r.kendallTau, 0)
+	/ stepResults.length}
+	{@const avgRedFlag = stepResults.reduce((sum, r) => sum + r.redFlagScore, 0)
+	/ stepResults.length}
 	{@const totalTime = stepResults.reduce((sum, r) => sum + r.timeMs, 0)}
 
 	<div class="stack stack-lg" style="margin-top: 1rem">
@@ -391,24 +422,30 @@ function tauToPercent(tau: number): number {
 				Casus voltooid: {activeCase.title}
 			</h2>
 			<p class="text-sm text-muted">
-				{activeCase.patient.sex === 'M' ? 'Man' : 'Vrouw'}, {activeCase.patient.age} jaar
+				{activeCase.patient.sex === 'M' ? 'Man' : 'Vrouw'}, {
+					activeCase.patient.age
+				} jaar
 			</p>
 		</div>
 
 		<!-- Overall scores -->
 		<div class="score-grid">
 			<div class="score-card" style="border-color: var(--primary)">
-				<div class="score-value" style="color: var(--primary)">{tauToPercent(avgTau)}</div>
+				<div class="score-value" style="color: var(--primary)">
+					{tauToPercent(avgTau)}
+				</div>
 				<div class="score-label">Gem. ranking</div>
 			</div>
-			<div class="score-card" style="border-color: {avgRedFlag === 1 ? 'var(--success)' : 'var(--danger)'}">
-				<div class="score-value" style="color: {avgRedFlag === 1 ? 'var(--success)' : 'var(--danger)'}">
+			<div class="score-card" style:border-color={scoreColor(avgRedFlag)}>
+				<div class="score-value" style:color={scoreColor(avgRedFlag)}>
 					{formatScore(avgRedFlag)}
 				</div>
 				<div class="score-label">Alarmsignalen</div>
 			</div>
 			<div class="score-card">
-				<div class="score-value" style="color: var(--text-muted)">{formatTime(totalTime)}</div>
+				<div class="score-value" style="color: var(--text-muted)">
+					{formatTime(totalTime)}
+				</div>
 				<div class="score-label">Totale tijd</div>
 			</div>
 		</div>
@@ -416,7 +453,7 @@ function tauToPercent(tau: number): number {
 		<!-- Per-step breakdown -->
 		<div class="stack stack-sm">
 			<h3 class="text-sm" style="font-weight: 600">Per stap</h3>
-			{#each stepResults as sr, i}
+			{#each stepResults as sr, i (i)}
 				<div class="card" style="padding: 0.75rem 1rem">
 					<div class="row row-between" style="flex-wrap: wrap; gap: 0.5rem">
 						<div>
@@ -426,8 +463,13 @@ function tauToPercent(tau: number): number {
 							</span>
 						</div>
 						<div class="row" style="gap: 0.5rem">
-							<span class="badge badge-purple">Ranking: {tauToPercent(sr.kendallTau)}%</span>
-							<span class="badge" class:badge-green={sr.redFlagScore === 1} class:badge-red={sr.redFlagScore < 1}>
+							<span class="badge badge-purple"
+							>Ranking: {tauToPercent(sr.kendallTau)}%</span>
+							<span
+								class="badge"
+								class:badge-green={sr.redFlagScore === 1}
+								class:badge-red={sr.redFlagScore < 1}
+							>
 								Alarm: {formatScore(sr.redFlagScore)}
 							</span>
 							<span class="text-sm text-muted">{formatTime(sr.timeMs)}</span>
@@ -439,7 +481,11 @@ function tauToPercent(tau: number): number {
 
 		<div class="row" style="gap: 0.5rem">
 			{#if activeCase}
-				<button class="btn btn-primary" style="flex: 1" onclick={() => startCase(activeCase)}>
+				<button
+					class="btn btn-primary"
+					style="flex: 1"
+					onclick={() => startCase(activeCase)}
+				>
 					Opnieuw spelen
 				</button>
 			{/if}
