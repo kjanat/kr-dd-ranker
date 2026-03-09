@@ -2,6 +2,7 @@
 import { allCases, getCaseById } from '$lib/data/cases.js';
 import { evaluateStep, shuffle } from '$lib/scoring.js';
 import type { Case, GamePhase, StepResult, UserDiagnosis } from '$lib/types.js';
+import { flip } from 'svelte/animate';
 
 // ---- Game state ----
 let phase = $state<GamePhase>({ kind: 'selecting' });
@@ -351,6 +352,7 @@ function scoreColor(score: number): string {
 					ondrop={() => handleDrop(i)}
 					ondragend={handleDragEnd}
 					ontouchstart={(e: TouchEvent) => handleTouchStart(e, i)}
+					animate:flip={{ duration: 200 }}
 				>
 					<div class="dx-rank">{i + 1}</div>
 					<div class="dx-name">{dx.name}</div>
