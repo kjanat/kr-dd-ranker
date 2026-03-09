@@ -160,10 +160,8 @@ function touchDragList(node: HTMLElement) {
 		const vh = window.innerHeight;
 		let delta = 0;
 		if (lastTouchY < EDGE_ZONE) {
-			// Scroll up — faster when closer to edge
 			delta = -SCROLL_SPEED * (1 - lastTouchY / EDGE_ZONE);
 		} else if (lastTouchY > vh - EDGE_ZONE) {
-			// Scroll down — faster when closer to edge
 			delta = SCROLL_SPEED * (1 - (vh - lastTouchY) / EDGE_ZONE);
 		}
 
@@ -190,24 +188,25 @@ function touchDragList(node: HTMLElement) {
 		}
 	}
 
-	function onTouchMove(e: TouchEvent) {
+	// Passive: cancels long-press if user scrolls. Never blocks native scroll.
+	function onTouchMovePassive(e: TouchEvent) {
+		if (touchDragActive) return;
 		const touch = e.touches[0];
-
-		if (!touchDragActive) {
-			if (Math.abs(touch.clientY - touchStartY) > 5) {
-				clearTouchHold();
-			}
-			return;
+		if (Math.abs(touch.clientY - touchStartY) > 5) {
+			clearTouchHold();
 		}
+	}
 
+	// Non-passive: blocks native scroll during active drag, drives auto-scroll.
+	function onTouchMoveDrag(e: TouchEvent) {
+		if (!touchDragActive) return;
 		e.preventDefault();
 
-		lastTouchX = touch.clientX;
-		lastTouchY = touch.clientY;
+		lastTouchX = e.touches[0].clientX;
+		lastTouchY = e.touches[0].clientY;
 
 		updateDragOver();
 
-		// Start auto-scroll when finger nears viewport edge
 		const vh = window.innerHeight;
 		if (lastTouchY < EDGE_ZONE || lastTouchY > vh - EDGE_ZONE) {
 			startAutoScroll();
@@ -237,13 +236,25 @@ function touchDragList(node: HTMLElement) {
 		touchDragActive = false;
 	}
 
-	node.addEventListener('touchmove', onTouchMove, { passive: false });
+	// Always-on passive listener — never degrades scroll performance
+	node.addEventListener('touchmove', onTouchMovePassive, { passive: true });
 	node.addEventListener('touchend', onTouchEnd);
 	node.addEventListener('touchcancel', onTouchEnd);
 
+	// Non-passive listener only while drag is active (via $effect)
+	$effect(() => {
+		if (touchDragActive) {
+			node.addEventListener('touchmove', onTouchMoveDrag, { passive: false });
+			return () => {
+				node.removeEventListener('touchmove', onTouchMoveDrag);
+				stopAutoScroll();
+			};
+		}
+	});
+
 	return {
 		destroy() {
-			node.removeEventListener('touchmove', onTouchMove);
+			node.removeEventListener('touchmove', onTouchMovePassive);
 			node.removeEventListener('touchend', onTouchEnd);
 			node.removeEventListener('touchcancel', onTouchEnd);
 			stopAutoScroll();
