@@ -134,6 +134,62 @@ function clearTouchHold() {
 }
 
 function touchDragList(node: HTMLElement) {
+	const EDGE_ZONE = 60; // px from viewport edge to trigger scroll
+	const SCROLL_SPEED = 6; // px per animation frame
+
+	let lastTouchX = 0;
+	let lastTouchY = 0;
+	let scrollRaf: number | null = null;
+
+	function updateDragOver() {
+		const el = document.elementFromPoint(lastTouchX, lastTouchY);
+		const item = el?.closest('[role="listitem"]');
+		if (item instanceof HTMLElement && node.contains(item)) {
+			const items = [...node.querySelectorAll('[role="listitem"]')];
+			const idx = items.indexOf(item);
+			if (idx !== -1) dragOverIndex = idx;
+		}
+	}
+
+	function scrollTick() {
+		if (!touchDragActive) {
+			scrollRaf = null;
+			return;
+		}
+
+		const vh = window.innerHeight;
+		let delta = 0;
+		if (lastTouchY < EDGE_ZONE) {
+			// Scroll up — faster when closer to edge
+			delta = -SCROLL_SPEED * (1 - lastTouchY / EDGE_ZONE);
+		} else if (lastTouchY > vh - EDGE_ZONE) {
+			// Scroll down — faster when closer to edge
+			delta = SCROLL_SPEED * (1 - (vh - lastTouchY) / EDGE_ZONE);
+		}
+
+		if (Math.abs(delta) < 0.5) {
+			scrollRaf = null;
+			return;
+		}
+
+		window.scrollBy(0, delta);
+		updateDragOver();
+		scrollRaf = requestAnimationFrame(scrollTick);
+	}
+
+	function startAutoScroll() {
+		if (scrollRaf === null) {
+			scrollRaf = requestAnimationFrame(scrollTick);
+		}
+	}
+
+	function stopAutoScroll() {
+		if (scrollRaf !== null) {
+			cancelAnimationFrame(scrollRaf);
+			scrollRaf = null;
+		}
+	}
+
 	function onTouchMove(e: TouchEvent) {
 		const touch = e.touches[0];
 
@@ -146,17 +202,23 @@ function touchDragList(node: HTMLElement) {
 
 		e.preventDefault();
 
-		const el = document.elementFromPoint(touch.clientX, touch.clientY);
-		const item = el?.closest('[role="listitem"]');
-		if (item instanceof HTMLElement && node.contains(item)) {
-			const items = [...node.querySelectorAll('[role="listitem"]')];
-			const idx = items.indexOf(item);
-			if (idx !== -1) dragOverIndex = idx;
+		lastTouchX = touch.clientX;
+		lastTouchY = touch.clientY;
+
+		updateDragOver();
+
+		// Start auto-scroll when finger nears viewport edge
+		const vh = window.innerHeight;
+		if (lastTouchY < EDGE_ZONE || lastTouchY > vh - EDGE_ZONE) {
+			startAutoScroll();
+		} else {
+			stopAutoScroll();
 		}
 	}
 
 	function onTouchEnd() {
 		clearTouchHold();
+		stopAutoScroll();
 
 		if (
 			touchDragActive
@@ -184,6 +246,7 @@ function touchDragList(node: HTMLElement) {
 			node.removeEventListener('touchmove', onTouchMove);
 			node.removeEventListener('touchend', onTouchEnd);
 			node.removeEventListener('touchcancel', onTouchEnd);
+			stopAutoScroll();
 			clearTouchHold();
 		},
 	};
