@@ -1,9 +1,10 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { playwright } from '@vitest/browser-playwright';
+import svgToIco from 'vite-svg-to-ico';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-	plugins: [sveltekit()],
+	plugins: [sveltekit(), svgToIco({ input: 'src/lib/assets/favicon.svg' })],
 	test: {
 		expect: { requireAssertions: true },
 		projects: [
