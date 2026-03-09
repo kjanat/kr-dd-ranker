@@ -7,6 +7,7 @@
 }
 
 :root {
+	color-scheme: light;
 	--bg: #f8fafc;
 	--bg-card: #ffffff;
 	--bg-hover: #f1f5f9;
@@ -27,6 +28,79 @@
 	--radius-lg: 12px;
 	--shadow: 0 1px 3px rgb(0 0 0 / 0.1);
 	--shadow-lg: 0 4px 12px rgb(0 0 0 / 0.1);
+	--btn-disabled-bg: #94a3b8;
+	--btn-danger-hover-bg: #b91c1c;
+	--accent-bg: #eff6ff;
+	--patient-bg: linear-gradient(135deg, #eff6ff, #f0f9ff);
+	--patient-border: #bfdbfe;
+	--clinical-bg: #fffbeb;
+	--clinical-border: #fde68a;
+}
+
+/* ---- Dark theme ---- */
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme]) {
+		color-scheme: dark;
+		--bg: #0f172a;
+		--bg-card: #1e293b;
+		--bg-hover: #334155;
+		--text: #f1f5f9;
+		--text-muted: #94a3b8;
+		--border: #334155;
+		--primary: #3b82f6;
+		--primary-hover: #60a5fa;
+		--danger: #ef4444;
+		--danger-bg: #3b1111;
+		--success: #22c55e;
+		--success-bg: #0f2d1a;
+		--warning: #f97316;
+		--warning-bg: #3b1a06;
+		--info: #a78bfa;
+		--info-bg: #1e1145;
+		--shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+		--shadow-lg: 0 4px 12px rgb(0 0 0 / 0.5);
+		--btn-disabled-bg: #475569;
+		--btn-danger-hover-bg: #dc2626;
+		--accent-bg: #1e3a5f;
+		--patient-bg: linear-gradient(135deg, #172554, #1e3a5f);
+		--patient-border: #1e40af;
+		--clinical-bg: #422006;
+		--clinical-border: #92400e;
+	}
+}
+
+[data-theme="dark"] {
+	color-scheme: dark;
+	--bg: #0f172a;
+	--bg-card: #1e293b;
+	--bg-hover: #334155;
+	--text: #f1f5f9;
+	--text-muted: #94a3b8;
+	--border: #334155;
+	--primary: #3b82f6;
+	--primary-hover: #60a5fa;
+	--danger: #ef4444;
+	--danger-bg: #3b1111;
+	--success: #22c55e;
+	--success-bg: #0f2d1a;
+	--warning: #f97316;
+	--warning-bg: #3b1a06;
+	--info: #a78bfa;
+	--info-bg: #1e1145;
+	--shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+	--shadow-lg: 0 4px 12px rgb(0 0 0 / 0.5);
+	--btn-disabled-bg: #475569;
+	--btn-danger-hover-bg: #dc2626;
+	--accent-bg: #1e3a5f;
+	--patient-bg: linear-gradient(135deg, #172554, #1e3a5f);
+	--patient-border: #1e40af;
+	--clinical-bg: #422006;
+	--clinical-border: #92400e;
+}
+
+[data-theme="light"] {
+	color-scheme: light;
 }
 
 html {
@@ -92,7 +166,7 @@ button {
 }
 
 .btn-primary:disabled {
-	background: #94a3b8;
+	background: var(--btn-disabled-bg);
 	cursor: not-allowed;
 	transform: none;
 }
@@ -112,7 +186,7 @@ button {
 }
 
 .btn-danger:hover {
-	background: #b91c1c;
+	background: var(--btn-danger-hover-bg);
 }
 
 /* ---- Badge ---- */
@@ -165,8 +239,8 @@ button {
 /* ---- Patient card ---- */
 
 .patient-card {
-	background: linear-gradient(135deg, #eff6ff, #f0f9ff);
-	border: 1px solid #bfdbfe;
+	background: var(--patient-bg);
+	border: 1px solid var(--patient-border);
 }
 
 .patient-card .label {
@@ -209,7 +283,7 @@ button {
 
 .dx-item.drag-over {
 	border-color: var(--primary);
-	background: #eff6ff;
+	background: var(--accent-bg);
 }
 
 .dx-rank {
@@ -409,7 +483,7 @@ button {
 	width: 3rem;
 	height: 3rem;
 	border-radius: var(--radius);
-	background: #eff6ff;
+	background: var(--accent-bg);
 	color: var(--primary);
 	font-weight: 800;
 	font-size: 0.75rem;
@@ -433,8 +507,8 @@ button {
 /* ---- Clinical info ---- */
 
 .clinical-info {
-	background: #fffbeb;
-	border: 1px solid #fde68a;
+	background: var(--clinical-bg);
+	border: 1px solid var(--clinical-border);
 	border-radius: var(--radius);
 	padding: 1rem;
 	font-size: 0.9375rem;
@@ -502,8 +576,15 @@ button {
 /* ---- Header ---- */
 
 .app-header {
-	text-align: center;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
 	padding: 1.5rem 0 0.5rem;
+}
+
+.app-header .app-header-text {
+	flex: 1;
+	text-align: center;
 }
 
 .app-header h1 {
@@ -515,6 +596,30 @@ button {
 .app-header p {
 	font-size: 0.875rem;
 	color: var(--text-muted);
+}
+
+.theme-toggle {
+	width: 2.25rem;
+	height: 2.25rem;
+	border-radius: var(--radius);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid var(--border);
+	color: var(--text-muted);
+	transition: border-color 0.15s, background 0.15s, color 0.15s;
+	flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+	border-color: var(--primary);
+	color: var(--text);
+	background: var(--bg-hover);
+}
+
+.theme-toggle svg {
+	width: 1.125rem;
+	height: 1.125rem;
 }
 
 /* ---- Utility ---- */
