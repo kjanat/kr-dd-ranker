@@ -167,7 +167,7 @@ function scoreColor(score: number): string {
 			alarmsignalen.
 		</p>
 
-		<div class="case-grid">
+		<div class="case-grid" aria-label="Beschikbare casussen">
 			{#each allCases as c (c.id)}
 				<button class="case-card" onclick={() => startCase(c)}>
 					<div class="case-chapter">{c.chapter}</div>
@@ -190,20 +190,32 @@ function scoreColor(score: number): string {
 {:else if phase.kind === 'ranking' && activeCase && activeStep}
 	<div class="stack stack-md" style="margin-top: 1rem">
 		<!-- Step progress -->
-		<div class="row" style="justify-content: center">
+		<nav
+			aria-label="Stap voortgang"
+			class="row"
+			style="justify-content: center"
+		>
 			{#each activeCase.steps as step, i (step.title)}
 				{#if i > 0}
-					<div class="step-connector" class:done={i <= currentStepIndex}></div>
+					<div
+						class="step-connector"
+						class:done={i <= currentStepIndex}
+						aria-hidden="true"
+					>
+					</div>
 				{/if}
 				<div
 					class="step-dot"
 					class:active={i === currentStepIndex}
 					class:done={i < currentStepIndex}
+					aria-label="Stap {i + 1}{i === currentStepIndex ? ' (huidig)' : i < currentStepIndex ? ' (voltooid)' : ''}"
+					aria-current={i === currentStepIndex ? 'step' : undefined}
 				>
 					{i + 1}
 				</div>
 			{/each}
-		</div>
+		</nav>
+		<span class="sr-only">Stap {currentStepIndex + 1} van {totalSteps}</span>
 
 		<!-- Patient card -->
 		<div class="card patient-card">
@@ -240,7 +252,11 @@ function scoreColor(score: number): string {
 		</div>
 
 		<!-- Diagnosis list -->
-		<div class="stack stack-xs">
+		<div
+			class="stack stack-xs"
+			role="list"
+			aria-label="Diagnoses rangschikking"
+		>
 			{#each userDiagnoses as dx, i (dx.id)}
 				<div
 					class="dx-item"
@@ -248,6 +264,7 @@ function scoreColor(score: number): string {
 					class:drag-over={dragOverIndex === i && dragIndex !== i}
 					draggable="true"
 					role="listitem"
+					aria-label="{dx.name}, positie {i + 1} van {userDiagnoses.length}"
 					ondragstart={() => handleDragStart(i)}
 					ondragover={(e: DragEvent) => handleDragOver(e, i)}
 					ondrop={() => handleDrop(i)}
@@ -298,29 +315,48 @@ function scoreColor(score: number): string {
 	{@const result = phase.result}
 	<div class="stack stack-md" style="margin-top: 1rem">
 		<!-- Step progress -->
-		<div class="row" style="justify-content: center">
+		<nav
+			aria-label="Stap voortgang"
+			class="row"
+			style="justify-content: center"
+		>
 			{#each activeCase.steps as step, i (step.title)}
 				{#if i > 0}
-					<div class="step-connector" class:done={i <= phase.stepIndex}></div>
+					<div
+						class="step-connector"
+						class:done={i <= phase.stepIndex}
+						aria-hidden="true"
+					>
+					</div>
 				{/if}
 				<div
 					class="step-dot"
 					class:active={i === phase.stepIndex}
 					class:done={i < phase.stepIndex}
+					aria-label="Stap {i + 1}{i === phase.stepIndex ? ' (huidig)' : i < phase.stepIndex ? ' (voltooid)' : ''}"
+					aria-current={i === phase.stepIndex ? 'step' : undefined}
 				>
 					{i + 1}
 				</div>
 			{/each}
-		</div>
+		</nav>
 
 		<!-- Scores -->
-		<div class="score-grid">
+		<div class="score-grid" aria-live="polite">
 			<div class="score-card">
 				<div class="score-value" style="color: var(--primary)">
 					{tauToPercent(result.kendallTau)}
 				</div>
 				<div class="score-label">Ranking (Kendall &tau;)</div>
-				<div class="progress-bar" style="margin-top: 0.5rem">
+				<div
+					class="progress-bar"
+					style="margin-top: 0.5rem"
+					role="progressbar"
+					aria-valuenow={tauToPercent(result.kendallTau)}
+					aria-valuemin={0}
+					aria-valuemax={100}
+					aria-label="Ranking score"
+				>
 					<div
 						class="progress-fill"
 						style:width="{tauToPercent(result.kendallTau)}%"
@@ -334,7 +370,15 @@ function scoreColor(score: number): string {
 					{formatScore(result.redFlagScore)}
 				</div>
 				<div class="score-label">Alarmsignalen</div>
-				<div class="progress-bar" style="margin-top: 0.5rem">
+				<div
+					class="progress-bar"
+					style="margin-top: 0.5rem"
+					role="progressbar"
+					aria-valuenow={Math.round(result.redFlagScore * 100)}
+					aria-valuemin={0}
+					aria-valuemax={100}
+					aria-label="Alarmsignalen score"
+				>
 					<div
 						class="progress-fill"
 						style:width="{result.redFlagScore * 100}%"
@@ -352,7 +396,7 @@ function scoreColor(score: number): string {
 		</div>
 
 		<!-- Feedback list -->
-		<div class="stack stack-xs">
+		<div class="stack stack-xs" role="list" aria-label="Feedback per diagnose">
 			{#each result.feedback as fb (fb.diagnosisId)}
 				<div
 					class="dx-item"
@@ -361,6 +405,7 @@ function scoreColor(score: number): string {
 					class:fb-too-low={fb.verdict === 'too-low' && !fb.missedRedFlag}
 					class:fb-missed={fb.missedRedFlag}
 					style="cursor: default"
+					role="listitem"
 				>
 					<div
 						class="dx-rank"

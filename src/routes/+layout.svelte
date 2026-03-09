@@ -20,7 +20,7 @@ let { children } = $props();
 		<p>Differentiaaldiagnose-trainer</p>
 	</header>
 
-	<main>
+	<main aria-label="Hoofdinhoud">
 		{@render children()}
 	</main>
 </div>
