@@ -109,6 +109,85 @@ function handleDragEnd() {
 	dragOverIndex = null;
 }
 
+// ---- Touch reorder (mobile) ----
+
+let touchStartY = 0;
+let touchDragActive = $state(false);
+let touchHoldTimer: ReturnType<typeof setTimeout> | null = null;
+
+function handleTouchStart(e: TouchEvent, index: number) {
+	touchStartY = e.touches[0].clientY;
+	touchDragActive = false;
+	clearTouchHold();
+	touchHoldTimer = setTimeout(() => {
+		dragIndex = index;
+		touchDragActive = true;
+	}, 300);
+}
+
+function clearTouchHold() {
+	if (touchHoldTimer !== null) {
+		clearTimeout(touchHoldTimer);
+		touchHoldTimer = null;
+	}
+}
+
+function touchDragList(node: HTMLElement) {
+	function onTouchMove(e: TouchEvent) {
+		const touch = e.touches[0];
+
+		if (!touchDragActive) {
+			if (Math.abs(touch.clientY - touchStartY) > 5) {
+				clearTouchHold();
+			}
+			return;
+		}
+
+		e.preventDefault();
+
+		const el = document.elementFromPoint(touch.clientX, touch.clientY);
+		const item = el?.closest('[role="listitem"]');
+		if (item instanceof HTMLElement && node.contains(item)) {
+			const items = [...node.querySelectorAll('[role="listitem"]')];
+			const idx = items.indexOf(item);
+			if (idx !== -1) dragOverIndex = idx;
+		}
+	}
+
+	function onTouchEnd() {
+		clearTouchHold();
+
+		if (
+			touchDragActive
+			&& dragIndex !== null
+			&& dragOverIndex !== null
+			&& dragIndex !== dragOverIndex
+		) {
+			const updated = [...userDiagnoses];
+			const [moved] = updated.splice(dragIndex, 1);
+			updated.splice(dragOverIndex, 0, moved);
+			userDiagnoses = updated;
+		}
+
+		dragIndex = null;
+		dragOverIndex = null;
+		touchDragActive = false;
+	}
+
+	node.addEventListener('touchmove', onTouchMove, { passive: false });
+	node.addEventListener('touchend', onTouchEnd);
+	node.addEventListener('touchcancel', onTouchEnd);
+
+	return {
+		destroy() {
+			node.removeEventListener('touchmove', onTouchMove);
+			node.removeEventListener('touchend', onTouchEnd);
+			node.removeEventListener('touchcancel', onTouchEnd);
+			clearTouchHold();
+		},
+	};
+}
+
 // ---- Arrow reorder ----
 
 function moveUp(index: number) {
@@ -256,12 +335,14 @@ function scoreColor(score: number): string {
 			class="stack stack-xs"
 			role="list"
 			aria-label="Diagnoses rangschikking"
+			use:touchDragList
 		>
 			{#each userDiagnoses as dx, i (dx.id)}
 				<div
 					class="dx-item"
-					class:dragging={dragIndex === i}
+					class:dragging={dragIndex === i && !touchDragActive}
 					class:drag-over={dragOverIndex === i && dragIndex !== i}
+					class:touch-dragging={touchDragActive && dragIndex === i}
 					draggable="true"
 					role="listitem"
 					aria-label="{dx.name}, positie {i + 1} van {userDiagnoses.length}"
@@ -269,6 +350,7 @@ function scoreColor(score: number): string {
 					ondragover={(e: DragEvent) => handleDragOver(e, i)}
 					ondrop={() => handleDrop(i)}
 					ondragend={handleDragEnd}
+					ontouchstart={(e: TouchEvent) => handleTouchStart(e, i)}
 				>
 					<div class="dx-rank">{i + 1}</div>
 					<div class="dx-name">{dx.name}</div>

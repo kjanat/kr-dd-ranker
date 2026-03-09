@@ -281,6 +281,15 @@ button {
 	border-color: var(--primary);
 }
 
+.dx-item.touch-dragging {
+	transform: scale(1.03);
+	box-shadow: var(--shadow-lg);
+	border-color: var(--primary);
+	opacity: 0.9;
+	z-index: 1;
+	position: relative;
+}
+
 .dx-item.drag-over {
 	border-color: var(--primary);
 	background: var(--accent-bg);
