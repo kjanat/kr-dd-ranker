@@ -1,37 +1,37 @@
 <script lang="ts">
-import { browser } from '$app/environment';
-import '../app.css';
-import favicon from '$lib/assets/favicon.svg';
+	import { browser } from '$app/environment';
+	import '../app.css';
+	import favicon from '$lib/assets/favicon.svg';
 
-let { children } = $props();
+	let { children } = $props();
 
-type Theme = 'auto' | 'light' | 'dark';
+	type Theme = 'auto' | 'light' | 'dark';
 
-let theme = $state<Theme>('auto');
+	let theme = $state<Theme>('auto');
 
-if (browser) {
-	const stored = localStorage.getItem('theme');
-	if (stored === 'light' || stored === 'dark') theme = stored;
-}
-
-const labels: Record<Theme, string> = {
-	auto: 'Thema: systeem',
-	light: 'Thema: licht',
-	dark: 'Thema: donker',
-};
-
-function cycleTheme() {
-	const order: Theme[] = ['auto', 'light', 'dark'];
-	theme = order[(order.indexOf(theme) + 1) % order.length];
-
-	if (theme === 'auto') {
-		localStorage.removeItem('theme');
-		document.documentElement.removeAttribute('data-theme');
-	} else {
-		localStorage.setItem('theme', theme);
-		document.documentElement.setAttribute('data-theme', theme);
+	if (browser) {
+		const stored = localStorage.getItem('theme');
+		if (stored === 'light' || stored === 'dark') theme = stored;
 	}
-}
+
+	const labels: Record<Theme, string> = {
+		auto: 'Thema: systeem',
+		light: 'Thema: licht',
+		dark: 'Thema: donker',
+	};
+
+	function cycleTheme() {
+		const order: Theme[] = ['auto', 'light', 'dark'];
+		theme = order[(order.indexOf(theme) + 1) % order.length];
+
+		if (theme === 'auto') {
+			localStorage.removeItem('theme');
+			document.documentElement.removeAttribute('data-theme');
+		} else {
+			localStorage.setItem('theme', theme);
+			document.documentElement.setAttribute('data-theme', theme);
+		}
+	}
 </script>
 
 <svelte:head>

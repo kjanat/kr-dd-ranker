@@ -1,316 +1,323 @@
 <script lang="ts">
-import { allCases, getCaseById } from '$lib/data/cases.js';
-import { evaluateStep, shuffle } from '$lib/scoring.js';
-import type { Case, GamePhase, StepResult, UserDiagnosis } from '$lib/types.js';
-import { flip } from 'svelte/animate';
+	import { allCases, getCaseById } from '$lib/data/cases.js';
+	import { evaluateStep, shuffle } from '$lib/scoring.js';
+	import type {
+		Case,
+		GamePhase,
+		StepResult,
+		UserDiagnosis,
+	} from '$lib/types.js';
+	import { flip } from 'svelte/animate';
 
-// ---- Game state ----
-let phase = $state<GamePhase>({ kind: 'selecting' });
-let userDiagnoses = $state<UserDiagnosis[]>([]);
-let stepResults = $state<StepResult[]>([]);
-let dragIndex = $state<number | null>(null);
-let dragOverIndex = $state<number | null>(null);
+	// ---- Game state ----
+	let phase = $state<GamePhase>({ kind: 'selecting' });
+	let userDiagnoses = $state<UserDiagnosis[]>([]);
+	let stepResults = $state<StepResult[]>([]);
+	let dragIndex = $state<number | null>(null);
+	let dragOverIndex = $state<number | null>(null);
 
-// ---- Derived ----
-let activeCase = $derived(
-	phase.kind !== 'selecting' ? getCaseById(phase.caseId) : undefined,
-);
-let activeStep = $derived(
-	activeCase && phase.kind !== 'selecting' && phase.kind !== 'complete'
-		? activeCase.steps[phase.stepIndex]
-		: undefined,
-);
-let totalSteps = $derived(activeCase ? activeCase.steps.length : 0);
-let currentStepIndex = $derived(
-	phase.kind === 'ranking' || phase.kind === 'feedback' ? phase.stepIndex : -1,
-);
+	// ---- Derived ----
+	let activeCase = $derived(
+		phase.kind !== 'selecting' ? getCaseById(phase.caseId) : undefined,
+	);
+	let activeStep = $derived(
+		activeCase && phase.kind !== 'selecting' && phase.kind !== 'complete'
+			? activeCase.steps[phase.stepIndex]
+			: undefined,
+	);
+	let totalSteps = $derived(activeCase ? activeCase.steps.length : 0);
+	let currentStepIndex = $derived(
+		phase.kind === 'ranking' || phase.kind === 'feedback'
+			? phase.stepIndex
+			: -1,
+	);
 
-// ---- Actions ----
+	// ---- Actions ----
 
-function startCase(c: Case) {
-	stepResults = [];
-	initStep(c, 0);
-}
+	function startCase(c: Case) {
+		stepResults = [];
+		initStep(c, 0);
+	}
 
-function initStep(c: Case, stepIndex: number) {
-	const step = c.steps[stepIndex];
-	userDiagnoses = shuffle(step.diagnoses).map((d) => ({
-		id: d.id,
-		name: d.name,
-		flaggedRedFlag: false,
-	}));
-	phase = {
-		kind: 'ranking',
-		caseId: c.id,
-		stepIndex,
-		startTime: Date.now(),
-	};
-}
-
-function submitRanking() {
-	if (phase.kind !== 'ranking' || !activeStep) return;
-	const timeMs = Date.now() - phase.startTime;
-	const result = evaluateStep(userDiagnoses, activeStep.diagnoses, timeMs);
-	stepResults = [...stepResults, result];
-	phase = {
-		kind: 'feedback',
-		caseId: phase.caseId,
-		stepIndex: phase.stepIndex,
-		result,
-	};
-}
-
-function nextStep() {
-	if (phase.kind !== 'feedback' || !activeCase) return;
-	const next = phase.stepIndex + 1;
-	if (next < activeCase.steps.length) {
-		initStep(activeCase, next);
-	} else {
+	function initStep(c: Case, stepIndex: number) {
+		const step = c.steps[stepIndex];
+		userDiagnoses = shuffle(step.diagnoses).map((d) => ({
+			id: d.id,
+			name: d.name,
+			flaggedRedFlag: false,
+		}));
 		phase = {
-			kind: 'complete',
-			caseId: phase.caseId,
-			results: stepResults,
+			kind: 'ranking',
+			caseId: c.id,
+			stepIndex,
+			startTime: Date.now(),
 		};
 	}
-}
 
-function backToMenu() {
-	phase = { kind: 'selecting' };
-	stepResults = [];
-	userDiagnoses = [];
-}
-
-// ---- Drag and drop ----
-
-function handleDragStart(index: number) {
-	dragIndex = index;
-}
-
-function handleDragOver(e: DragEvent, index: number) {
-	e.preventDefault();
-	dragOverIndex = index;
-}
-
-function handleDrop(index: number) {
-	if (dragIndex === null || dragIndex === index) {
-		dragIndex = null;
-		dragOverIndex = null;
-		return;
-	}
-	const updated = [...userDiagnoses];
-	const [item] = updated.splice(dragIndex, 1);
-	updated.splice(index, 0, item);
-	userDiagnoses = updated;
-	dragIndex = null;
-	dragOverIndex = null;
-}
-
-function handleDragEnd() {
-	dragIndex = null;
-	dragOverIndex = null;
-}
-
-// ---- Touch reorder (mobile) ----
-
-let touchStartY = 0;
-let touchDragActive = $state(false);
-let touchHoldTimer: ReturnType<typeof setTimeout> | null = null;
-
-function handleTouchStart(e: TouchEvent, index: number) {
-	touchStartY = e.touches[0].clientY;
-	touchDragActive = false;
-	clearTouchHold();
-	touchHoldTimer = setTimeout(() => {
-		dragIndex = index;
-		touchDragActive = true;
-	}, 300);
-}
-
-function clearTouchHold() {
-	if (touchHoldTimer !== null) {
-		clearTimeout(touchHoldTimer);
-		touchHoldTimer = null;
-	}
-}
-
-function touchDragList(node: HTMLElement) {
-	const EDGE_ZONE = 60; // px from viewport edge to trigger scroll
-	const SCROLL_SPEED = 6; // px per animation frame
-
-	let lastTouchX = 0;
-	let lastTouchY = 0;
-	let scrollRaf: number | null = null;
-
-	function updateDragOver() {
-		const el = document.elementFromPoint(lastTouchX, lastTouchY);
-		const item = el?.closest('[role="listitem"]');
-		if (item instanceof HTMLElement && node.contains(item)) {
-			const items = [...node.querySelectorAll('[role="listitem"]')];
-			const idx = items.indexOf(item);
-			if (idx !== -1) dragOverIndex = idx;
-		}
+	function submitRanking() {
+		if (phase.kind !== 'ranking' || !activeStep) return;
+		const timeMs = Date.now() - phase.startTime;
+		const result = evaluateStep(userDiagnoses, activeStep.diagnoses, timeMs);
+		stepResults = [...stepResults, result];
+		phase = {
+			kind: 'feedback',
+			caseId: phase.caseId,
+			stepIndex: phase.stepIndex,
+			result,
+		};
 	}
 
-	function scrollTick() {
-		if (!touchDragActive) {
-			scrollRaf = null;
-			return;
-		}
-
-		const vh = window.innerHeight;
-		let delta = 0;
-		if (lastTouchY < EDGE_ZONE) {
-			delta = -SCROLL_SPEED * (1 - lastTouchY / EDGE_ZONE);
-		} else if (lastTouchY > vh - EDGE_ZONE) {
-			delta = SCROLL_SPEED * (1 - (vh - lastTouchY) / EDGE_ZONE);
-		}
-
-		if (Math.abs(delta) < 0.5) {
-			scrollRaf = null;
-			return;
-		}
-
-		window.scrollBy(0, delta);
-		updateDragOver();
-		scrollRaf = requestAnimationFrame(scrollTick);
-	}
-
-	function startAutoScroll() {
-		if (scrollRaf === null) {
-			scrollRaf = requestAnimationFrame(scrollTick);
-		}
-	}
-
-	function stopAutoScroll() {
-		if (scrollRaf !== null) {
-			cancelAnimationFrame(scrollRaf);
-			scrollRaf = null;
-		}
-	}
-
-	// Passive: cancels long-press if user scrolls. Never blocks native scroll.
-	function onTouchMovePassive(e: TouchEvent) {
-		if (touchDragActive) return;
-		const touch = e.touches[0];
-		if (Math.abs(touch.clientY - touchStartY) > 5) {
-			clearTouchHold();
-		}
-	}
-
-	// Non-passive: blocks native scroll during active drag, drives auto-scroll.
-	function onTouchMoveDrag(e: TouchEvent) {
-		if (!touchDragActive) return;
-		e.preventDefault();
-
-		lastTouchX = e.touches[0].clientX;
-		lastTouchY = e.touches[0].clientY;
-
-		updateDragOver();
-
-		const vh = window.innerHeight;
-		if (lastTouchY < EDGE_ZONE || lastTouchY > vh - EDGE_ZONE) {
-			startAutoScroll();
+	function nextStep() {
+		if (phase.kind !== 'feedback' || !activeCase) return;
+		const next = phase.stepIndex + 1;
+		if (next < activeCase.steps.length) {
+			initStep(activeCase, next);
 		} else {
-			stopAutoScroll();
-		}
-	}
-
-	function onTouchEnd() {
-		clearTouchHold();
-		stopAutoScroll();
-
-		if (
-			touchDragActive
-			&& dragIndex !== null
-			&& dragOverIndex !== null
-			&& dragIndex !== dragOverIndex
-		) {
-			const updated = [...userDiagnoses];
-			const [moved] = updated.splice(dragIndex, 1);
-			updated.splice(dragOverIndex, 0, moved);
-			userDiagnoses = updated;
-		}
-
-		dragIndex = null;
-		dragOverIndex = null;
-		touchDragActive = false;
-	}
-
-	// Always-on passive listener — never degrades scroll performance
-	node.addEventListener('touchmove', onTouchMovePassive, { passive: true });
-	node.addEventListener('touchend', onTouchEnd);
-	node.addEventListener('touchcancel', onTouchEnd);
-
-	// Non-passive listener only while drag is active (via $effect)
-	$effect(() => {
-		if (touchDragActive) {
-			node.addEventListener('touchmove', onTouchMoveDrag, { passive: false });
-			return () => {
-				node.removeEventListener('touchmove', onTouchMoveDrag);
-				stopAutoScroll();
+			phase = {
+				kind: 'complete',
+				caseId: phase.caseId,
+				results: stepResults,
 			};
 		}
-	});
+	}
 
-	return {
-		destroy() {
-			node.removeEventListener('touchmove', onTouchMovePassive);
-			node.removeEventListener('touchend', onTouchEnd);
-			node.removeEventListener('touchcancel', onTouchEnd);
-			stopAutoScroll();
+	function backToMenu() {
+		phase = { kind: 'selecting' };
+		stepResults = [];
+		userDiagnoses = [];
+	}
+
+	// ---- Drag and drop ----
+
+	function handleDragStart(index: number) {
+		dragIndex = index;
+	}
+
+	function handleDragOver(e: DragEvent, index: number) {
+		e.preventDefault();
+		dragOverIndex = index;
+	}
+
+	function handleDrop(index: number) {
+		if (dragIndex === null || dragIndex === index) {
+			dragIndex = null;
+			dragOverIndex = null;
+			return;
+		}
+		const updated = [...userDiagnoses];
+		const [item] = updated.splice(dragIndex, 1);
+		updated.splice(index, 0, item);
+		userDiagnoses = updated;
+		dragIndex = null;
+		dragOverIndex = null;
+	}
+
+	function handleDragEnd() {
+		dragIndex = null;
+		dragOverIndex = null;
+	}
+
+	// ---- Touch reorder (mobile) ----
+
+	let touchStartY = 0;
+	let touchDragActive = $state(false);
+	let touchHoldTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function handleTouchStart(e: TouchEvent, index: number) {
+		touchStartY = e.touches[0].clientY;
+		touchDragActive = false;
+		clearTouchHold();
+		touchHoldTimer = setTimeout(() => {
+			dragIndex = index;
+			touchDragActive = true;
+		}, 300);
+	}
+
+	function clearTouchHold() {
+		if (touchHoldTimer !== null) {
+			clearTimeout(touchHoldTimer);
+			touchHoldTimer = null;
+		}
+	}
+
+	function touchDragList(node: HTMLElement) {
+		const EDGE_ZONE = 60; // px from viewport edge to trigger scroll
+		const SCROLL_SPEED = 6; // px per animation frame
+
+		let lastTouchX = 0;
+		let lastTouchY = 0;
+		let scrollRaf: number | null = null;
+
+		function updateDragOver() {
+			const el = document.elementFromPoint(lastTouchX, lastTouchY);
+			const item = el?.closest('[role="listitem"]');
+			if (item instanceof HTMLElement && node.contains(item)) {
+				const items = [...node.querySelectorAll('[role="listitem"]')];
+				const idx = items.indexOf(item);
+				if (idx !== -1) dragOverIndex = idx;
+			}
+		}
+
+		function scrollTick() {
+			if (!touchDragActive) {
+				scrollRaf = null;
+				return;
+			}
+
+			const vh = window.innerHeight;
+			let delta = 0;
+			if (lastTouchY < EDGE_ZONE) {
+				delta = -SCROLL_SPEED * (1 - lastTouchY / EDGE_ZONE);
+			} else if (lastTouchY > vh - EDGE_ZONE) {
+				delta = SCROLL_SPEED * (1 - (vh - lastTouchY) / EDGE_ZONE);
+			}
+
+			if (Math.abs(delta) < 0.5) {
+				scrollRaf = null;
+				return;
+			}
+
+			window.scrollBy(0, delta);
+			updateDragOver();
+			scrollRaf = requestAnimationFrame(scrollTick);
+		}
+
+		function startAutoScroll() {
+			if (scrollRaf === null) {
+				scrollRaf = requestAnimationFrame(scrollTick);
+			}
+		}
+
+		function stopAutoScroll() {
+			if (scrollRaf !== null) {
+				cancelAnimationFrame(scrollRaf);
+				scrollRaf = null;
+			}
+		}
+
+		// Passive: cancels long-press if user scrolls. Never blocks native scroll.
+		function onTouchMovePassive(e: TouchEvent) {
+			if (touchDragActive) return;
+			const touch = e.touches[0];
+			if (Math.abs(touch.clientY - touchStartY) > 5) {
+				clearTouchHold();
+			}
+		}
+
+		// Non-passive: blocks native scroll during active drag, drives auto-scroll.
+		function onTouchMoveDrag(e: TouchEvent) {
+			if (!touchDragActive) return;
+			e.preventDefault();
+
+			lastTouchX = e.touches[0].clientX;
+			lastTouchY = e.touches[0].clientY;
+
+			updateDragOver();
+
+			const vh = window.innerHeight;
+			if (lastTouchY < EDGE_ZONE || lastTouchY > vh - EDGE_ZONE) {
+				startAutoScroll();
+			} else {
+				stopAutoScroll();
+			}
+		}
+
+		function onTouchEnd() {
 			clearTouchHold();
-		},
-	};
-}
+			stopAutoScroll();
 
-// ---- Arrow reorder ----
+			if (
+				touchDragActive
+				&& dragIndex !== null
+				&& dragOverIndex !== null
+				&& dragIndex !== dragOverIndex
+			) {
+				const updated = [...userDiagnoses];
+				const [moved] = updated.splice(dragIndex, 1);
+				updated.splice(dragOverIndex, 0, moved);
+				userDiagnoses = updated;
+			}
 
-function moveUp(index: number) {
-	if (index <= 0) return;
-	const updated = [...userDiagnoses];
-	[updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
-	userDiagnoses = updated;
-}
+			dragIndex = null;
+			dragOverIndex = null;
+			touchDragActive = false;
+		}
 
-function moveDown(index: number) {
-	if (index >= userDiagnoses.length - 1) return;
-	const updated = [...userDiagnoses];
-	[updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
-	userDiagnoses = updated;
-}
+		// Always-on passive listener — never degrades scroll performance
+		node.addEventListener('touchmove', onTouchMovePassive, { passive: true });
+		node.addEventListener('touchend', onTouchEnd);
+		node.addEventListener('touchcancel', onTouchEnd);
 
-// ---- Red flag toggle ----
+		// Non-passive listener only while drag is active (via $effect)
+		$effect(() => {
+			if (touchDragActive) {
+				node.addEventListener('touchmove', onTouchMoveDrag, { passive: false });
+				return () => {
+					node.removeEventListener('touchmove', onTouchMoveDrag);
+					stopAutoScroll();
+				};
+			}
+		});
 
-function toggleFlag(index: number) {
-	const updated = [...userDiagnoses];
-	updated[index] = {
-		...updated[index],
-		flaggedRedFlag: !updated[index].flaggedRedFlag,
-	};
-	userDiagnoses = updated;
-}
+		return {
+			destroy() {
+				node.removeEventListener('touchmove', onTouchMovePassive);
+				node.removeEventListener('touchend', onTouchEnd);
+				node.removeEventListener('touchcancel', onTouchEnd);
+				stopAutoScroll();
+				clearTouchHold();
+			},
+		};
+	}
 
-// ---- Formatting ----
+	// ---- Arrow reorder ----
 
-function formatTime(ms: number): string {
-	const s = Math.floor(ms / 1000);
-	const m = Math.floor(s / 60);
-	const remainder = s % 60;
-	return m > 0 ? `${m}m ${remainder}s` : `${s}s`;
-}
+	function moveUp(index: number) {
+		if (index <= 0) return;
+		const updated = [...userDiagnoses];
+		[updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
+		userDiagnoses = updated;
+	}
 
-function formatScore(n: number): string {
-	return `${Math.round(n * 100)}%`;
-}
+	function moveDown(index: number) {
+		if (index >= userDiagnoses.length - 1) return;
+		const updated = [...userDiagnoses];
+		[updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
+		userDiagnoses = updated;
+	}
 
-function tauToPercent(tau: number): number {
-	// tau ranges from -1 to 1, normalize to 0-100
-	return Math.round(((tau + 1) / 2) * 100);
-}
+	// ---- Red flag toggle ----
 
-function scoreColor(score: number): string {
-	return score === 1 ? 'var(--success)' : 'var(--danger)';
-}
+	function toggleFlag(index: number) {
+		const updated = [...userDiagnoses];
+		updated[index] = {
+			...updated[index],
+			flaggedRedFlag: !updated[index].flaggedRedFlag,
+		};
+		userDiagnoses = updated;
+	}
+
+	// ---- Formatting ----
+
+	function formatTime(ms: number): string {
+		const s = Math.floor(ms / 1000);
+		const m = Math.floor(s / 60);
+		const remainder = s % 60;
+		return m > 0 ? `${m}m ${remainder}s` : `${s}s`;
+	}
+
+	function formatScore(n: number): string {
+		return `${Math.round(n * 100)}%`;
+	}
+
+	function tauToPercent(tau: number): number {
+		// tau ranges from -1 to 1, normalize to 0-100
+		return Math.round(((tau + 1) / 2) * 100);
+	}
+
+	function scoreColor(score: number): string {
+		return score === 1 ? 'var(--success)' : 'var(--danger)';
+	}
 </script>
 
 <!-- ====== CASE SELECTION ====== -->
